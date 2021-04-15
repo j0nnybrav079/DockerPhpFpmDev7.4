@@ -56,6 +56,7 @@ RUN apt-get update \
         phar \
         mysqli \
         pgsql \
+        session \
         sockets \
         soap \
         tokenizer \
