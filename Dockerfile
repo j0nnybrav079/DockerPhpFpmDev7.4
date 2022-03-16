@@ -16,6 +16,12 @@ RUN apt-get update \
         && echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/xdebug.ini \
         && echo "xdebug.remote_host=$remoteIp" >> /usr/local/etc/php/conf.d/xdebug.ini
 
+RUN apt-get update \
+    && apt-get install -y libmagickwand-dev \
+    && apt-get install -y imagemagick \
+    && pecl install imagick \
+    && docker-php-ext-enable imagick
+
 # install composer
 ENV COMPOSER_HOME /composer
 ENV PATH ./vendor/bin:/composer/vendor/bin:$PATH
@@ -27,21 +33,28 @@ RUN apt-get update \
     && apt-get install -y \
         curl \
         git \
-        openssh-client \
-        unzip \
+        libfreetype6-dev \
+        libfreetype6-dev \
+        libicu-dev \
         libwebp-dev \
         libmemcached-dev \
         libmcrypt-dev \
         libonig-dev \
         libpq-dev \
         libzip-dev \
-        libicu-dev \
         libpng-dev \
         libjpeg62-turbo-dev \
-        libfreetype6-dev \
         libmagickwand-6.q16-dev \
         libssl-dev \
         libxml2-dev \
+        libmcrypt-dev \
+        libjpeg-dev \
+        openssh-client \
+        unzip \
+        ghostscript \
+        vim \
+        libzip-dev \
+        zip \
         --no-install-recommends \
     && docker-php-ext-install \
         bcmath \
@@ -61,24 +74,20 @@ RUN apt-get update \
         soap \
         tokenizer \
         zip \
-    && docker-php-ext-configure \
-        gd \
-            --prefix=/usr \
-            --with-jpeg \
-            --with-freetype \
-            --with-webp \
-    && docker-php-ext-install gd \
-    && docker-php-ext-enable opcache \
-    && ln -s /usr/lib/x86_64-linux-gnu/ImageMagick-6.8.9/bin-Q16/MagickWand-config /usr/bin \
-        && pecl install imagick \
-        && echo "extension=imagick.so" > /usr/local/etc/php/conf.d/ext-imagick.ini
+    && docker-php-ext-configure gd \
+        --enable-gd \
+        --with-freetype \
+        --with-jpeg \
+        --with-webp \
+    && docker-php-ext-install gd
+#    && docker-php-ext-enable opcache \
 
-# blackfire PHP Probe
+## blackfire PHP Probe
 RUN version=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") \
-    && architecture=$(case $(uname -m) in i386 | i686 | x86) echo "i386" ;; x86_64 | amd64) echo "amd64" ;; aarch64 | arm64 | armv8) echo "arm64" ;; *) echo "amd64" ;; esac) \
+    && architecture=$(uname -m) \
     && curl -A "Docker" -o /tmp/blackfire-probe.tar.gz -D - -L -s https://blackfire.io/api/v1/releases/probe/php/linux/$architecture/$version \
     && mkdir -p /tmp/blackfire \
     && tar zxpf /tmp/blackfire-probe.tar.gz -C /tmp/blackfire \
     && mv /tmp/blackfire/blackfire-*.so $(php -r "echo ini_get ('extension_dir');")/blackfire.so \
-    && printf "extension=blackfire.so\nblackfire.agent_socket=tcp://blackfire:8707\n" > $PHP_INI_DIR/conf.d/blackfire.ini \
+    && printf "extension=blackfire.so\nblackfire.agent_socket=tcp://blackfire:8307\n" > $PHP_INI_DIR/conf.d/blackfire.ini \
     && rm -rf /tmp/blackfire /tmp/blackfire-probe.tar.gz
